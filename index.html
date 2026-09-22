@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Tiro+Bangla&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
   box-sizing:border-box;
@@ -57,7 +59,7 @@ textarea.in{min-height:84px;resize:vertical;line-height:1.6}
 .tpl{border:2px solid var(--line);border-radius:12px;background:var(--field);padding:8px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font:600 13px/1.3 'Hind Siliguri',sans-serif;color:var(--ink)}
 .tpl[aria-pressed="true"]{border-color:var(--navy);box-shadow:0 0 0 1px var(--navy)}
 .thumb{width:100px;height:141px;overflow:hidden;position:relative;border-radius:3px;box-shadow:0 1px 5px rgba(0,0,0,.3);background:#fff}
-.thumb canvas{display:block;width:100%;height:100%}
+.thumb>div{transform:scale(.126);transform-origin:0 0;width:794px;height:1122px;position:absolute;left:0;top:0}
 .logorow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .logoprev{width:64px;height:64px;flex:none;background-size:contain;background-repeat:no-repeat;background-position:center;border-radius:8px;background-color:#fff;border:1px solid var(--line)}
 .chk{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:500}
@@ -74,13 +76,14 @@ textarea.in{min-height:84px;resize:vertical;line-height:1.6}
 .empty{color:var(--mute);text-align:center;padding:18px 8px;border:1px dashed var(--line);border-radius:12px}
 .stage{background:var(--desk);border-radius:14px;padding:16px}
 .sheetwrap{margin:0 auto;box-shadow:0 12px 32px rgba(0,0,0,.28);background:#fff;overflow:hidden}
-#sheetCv{display:block;width:100%;height:100%}
+#sheet{width:794px;height:1122px;transform-origin:0 0}
 .nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
 .nav .mid{text-align:center;flex:1;min-width:0}
 .nav .mid b{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nav .mid small{color:var(--mute)}
 .note{color:var(--mute);font-size:13.5px;margin:10px 0 0}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:#151936;color:#fff;padding:11px 16px;border-radius:12px;font-size:15px;max-width:min(92vw,520px);z-index:50;display:none;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+#off{position:absolute;left:-10000px;top:0;width:794px;height:1122px}
 #printRoot{display:none}
 @media(min-width:1000px){
   .layout{display:grid;grid-template-columns:minmax(380px,470px) 1fr;gap:18px;align-items:start}
@@ -88,14 +91,85 @@ textarea.in{min-height:84px;resize:vertical;line-height:1.6}
   .pc{display:block!important;position:sticky;top:12px}
 }
 
+/* ================= CERTIFICATE (always light, like paper) ================= */
+.cert{width:794px;height:1122px;position:relative;overflow:hidden;background:#fff;color:#1b1f3b;font-family:'Kalpurush','Hind Siliguri','Noto Sans Bengali','Nirmala UI',sans-serif;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cert *{box-sizing:border-box}
+.cert .bg{position:absolute;left:0;top:0;width:794px;height:1122px}
+.cert .logo{background-size:contain;background-repeat:no-repeat;background-position:center}
+.cert .grow{flex:1}
+.cert .c-title{font-family:'Tiro Bangla','Hind Siliguri','Noto Sans Bengali',serif;font-weight:700;line-height:1.4}
+.cert .c-inst{font-family:'Tiro Bangla','Hind Siliguri','Noto Sans Bengali',serif;font-weight:700;line-height:1.45}
+.cert .c-tag{font-size:17px;line-height:1.6}
+.cert .c-intro{font-size:21px;font-weight:500;line-height:1.6}
+.cert .c-name{font-family:'Tiro Bangla','Hind Siliguri','Noto Sans Bengali',serif;font-weight:700;line-height:1.55;padding:0 26px 4px;max-width:100%;border-bottom:2px solid currentColor}
+.cert .c-meta{display:flex;gap:30px;justify-content:center;font-size:19px;font-weight:500;line-height:1.6;margin-top:12px}
+.cert .c-body{font-size:22px;line-height:1.85;max-width:548px;margin-top:22px}
+.cert .badgeW{display:flex;flex-direction:column;align-items:center}
+.cert .badge{position:relative;width:110px;height:138px}
+.cert .badge svg{position:absolute;left:0;top:0;width:110px;height:138px}
+.cert .bt{position:absolute;left:0;top:0;width:110px;height:99px;display:flex;align-items:center;justify-content:center;font-family:'Tiro Bangla','Hind Siliguri','Noto Sans Bengali',serif;font-weight:700;line-height:1}
+.cert .blab{font-size:15px;font-weight:600;margin-top:2px}
+.cert .c-sigs{display:flex;justify-content:space-between;width:100%;align-items:flex-end;margin-top:16px}
+.cert .c-sigs.one{justify-content:center}
+.t-royal .c-sigs.one{padding-left:0}
+.cert .sg{width:200px;display:flex;flex-direction:column;align-items:center}
+.cert .sgtop{height:54px;width:100%;display:flex;align-items:flex-end;justify-content:center;font-size:17px;font-weight:600}
+.cert .sgimg{height:50px;width:170px;background-size:contain;background-repeat:no-repeat;background-position:center bottom}
+.cert .sgline{width:100%;border-top:1.6px solid currentColor}
+.cert .sglab{font-size:16px;margin-top:4px;line-height:1.5}
+
+/* --- Royal --- */
+.t-royal{color:#1a1e45}
+.t-royal .paper{position:absolute;left:80px;top:80px;width:634px;height:962px;padding:26px 46px 30px;display:flex;flex-direction:column;align-items:center}
+.t-royal .c-title{font-size:52px;color:#B5851A}
+.t-royal .orn{display:flex;align-items:center;gap:10px;width:250px;margin:0 0 10px}
+.t-royal .orn i{flex:1;height:2px;background:#C9A24A}
+.t-royal .orn b{width:10px;height:10px;background:#C9A24A;transform:rotate(45deg)}
+.t-royal .logo{width:116px;height:116px}
+.t-royal .c-inst{font-size:32px;color:#14206E;margin-top:8px}
+.t-royal .c-tag{color:#4a4f7a}
+.t-royal .c-intro{margin-top:18px;color:#3a3f6a}
+.t-royal .c-name{font-size:46px;color:#14206E;margin-top:6px}
+.t-royal .c-sigs{padding-left:126px}
+.t-royal .seal{position:absolute;left:30px;bottom:30px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#F8E39E,#D3A233 58%,#A97A17);border:4px solid #F0D27A;box-shadow:0 5px 12px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+.t-royal .seal .in{width:128px;height:128px;border-radius:50%;border:2px dashed rgba(20,32,110,.55);display:flex;align-items:center;justify-content:center;padding:14px;font-family:'Tiro Bangla','Hind Siliguri','Noto Sans Bengali',serif;font-weight:700;font-size:17px;line-height:1.35;color:#14206E}
+
+/* --- Modern --- */
+.t-modern{color:#12235a}
+.t-modern .wm{position:absolute;left:187px;top:400px;width:420px;height:420px;opacity:.05}
+.t-modern .hlogo{position:absolute;left:44px;top:34px;width:104px;height:104px;border-radius:50%;background-color:#fff;background-size:92%;background-repeat:no-repeat;background-position:center;border:3px solid #F2C14E}
+.t-modern .htxt{position:absolute;left:166px;top:44px;width:560px;text-align:left;color:#fff}
+.t-modern.hasph .htxt{width:390px}
+.t-modern .htxt .c-inst{font-size:27px;color:#fff}
+.t-modern .htxt .c-tag{color:#C9DEFF;font-size:16px}
+.t-modern .photo{position:absolute;right:48px;top:40px;width:146px;height:146px;border-radius:50%;border:6px solid #EBB94A;background-color:#fff;background-size:cover;background-position:center}
+.t-modern .main{position:absolute;left:64px;top:336px;width:666px;height:606px;display:flex;flex-direction:column;align-items:center}
+.t-modern .c-title{font-size:46px;color:#0E2A6A}
+.t-modern .c-intro{margin-top:10px;color:#33477f}
+.t-modern .c-name{font-size:44px;color:#0E2A6A;margin-top:6px;border-bottom-color:#7DB7E8}
+.t-modern .c-body{color:#1d2e63}
+
+/* --- Simple --- */
+.t-simple{color:#111}
+.t-simple .f1{position:absolute;left:0;top:0;width:794px;height:1122px;border:26px solid #14206E}
+.t-simple .f2{position:absolute;left:44px;top:44px;width:706px;height:1034px;border:2px solid #C9A24A}
+.t-simple .paper{position:absolute;left:44px;top:44px;width:706px;height:1034px;padding:34px 60px 38px;display:flex;flex-direction:column;align-items:center}
+.t-simple .logo{width:92px;height:92px}
+.t-simple .c-inst{font-size:32px;color:#111;margin-top:6px}
+.t-simple .c-tag{color:#555}
+.t-simple .c-event{font-size:24px;font-weight:600;color:#14206E;line-height:1.6;margin-top:2px}
+.t-simple .c-title{font-size:64px;color:#111;margin-top:18px}
+.t-simple .c-intro{margin-top:12px;color:#444}
+.t-simple .c-name{font-size:42px;color:#111;border-bottom:1.5px solid #888;margin-top:6px}
+
 /* ---- print: every certificate on its own A4 page ---- */
 @page{size:A4;margin:0}
 @media print{
   html,body{margin:0;padding:0;background:#fff}
   :root{padding:0}
-  .app,#toast{display:none!important}
+  .app,#toast,#off{display:none!important}
   #printRoot{display:block}
-  #printRoot .pg{display:block;width:210mm;height:297mm;break-after:page;page-break-after:always}
+  #printRoot .cert{break-after:page;page-break-after:always}
 }
 </style>
 </head>
@@ -124,9 +198,9 @@ textarea.in{min-height:84px;resize:vertical;line-height:1.6}
           <h2>ডিজাইন বেছে নিন</h2>
           <p class="sub">নিচের ছোট ছবিতে বর্তমান শিক্ষার্থীর সনদ দেখা যাচ্ছে।</p>
           <div class="tpls" id="tpls">
-            <button class="tpl" data-t="royal" aria-pressed="false"><span class="thumb"><canvas width="200" height="281"></canvas></span>ক্লাসিক ও রাজকীয়</button>
-            <button class="tpl" data-t="modern" aria-pressed="false"><span class="thumb"><canvas width="200" height="281"></canvas></span>আধুনিক ও উজ্জ্বল</button>
-            <button class="tpl" data-t="simple" aria-pressed="false"><span class="thumb"><canvas width="200" height="281"></canvas></span>সাদামাটা ও পেশাদার</button>
+            <button class="tpl" data-t="royal" aria-pressed="false"><span class="thumb"><div></div></span>ক্লাসিক ও রাজকীয়</button>
+            <button class="tpl" data-t="modern" aria-pressed="false"><span class="thumb"><div></div></span>আধুনিক ও উজ্জ্বল</button>
+            <button class="tpl" data-t="simple" aria-pressed="false"><span class="thumb"><div></div></span>সাদামাটা ও পেশাদার</button>
           </div>
         </div>
 
@@ -150,7 +224,6 @@ textarea.in{min-height:84px;resize:vertical;line-height:1.6}
 
         <div class="card">
           <h2>সনদের লেখা</h2>
-          <p class="sub">যে ঘর ফাঁকা রাখবেন সনদে সেটি আসবে না।</p>
           <label class="f"><span>শিরোনাম</span><input class="in" data-s="title" autocomplete="off"></label>
           <label class="f"><span>নামের আগের লাইন</span><input class="in" data-s="intro" autocomplete="off"></label>
           <label class="f"><span>নিজের বাক্য লিখতে চাইলে (না লিখলে নিজে থেকে তৈরি হবে)</span>
@@ -163,10 +236,10 @@ textarea.in{min-height:84px;resize:vertical;line-height:1.6}
         <div class="card">
           <h2>স্বাক্ষর ও তারিখ</h2>
           <div class="two">
-            <label class="f"><span>বাম পাশের লেখা (ফাঁকা রাখলে বাদ)</span><input class="in" data-s="sigLeft" autocomplete="off"></label>
+            <label class="f"><span>বাম পাশের লেখা</span><input class="in" data-s="sigLeft" autocomplete="off"></label>
             <label class="f"><span>ডান পাশের লেখা</span><input class="in" data-s="sigRight" autocomplete="off"></label>
           </div>
-          <label class="f"><span>তারিখ (ফাঁকা রাখলে তারিখের অংশ আসবে না)</span><input class="in" data-s="date" autocomplete="off"></label>
+          <label class="f"><span>তারিখ (ফাঁকা রাখলে হাতে লেখার লাইন থাকবে)</span><input class="in" data-s="date" autocomplete="off"></label>
           <div class="btns">
             <button class="btn" id="dateToday" type="button">আজকের তারিখ বসান</button>
             <button class="btn" id="sigBtn" type="button">স্বাক্ষরের ছবি দিন</button>
@@ -211,7 +284,7 @@ textarea.in{min-height:84px;resize:vertical;line-height:1.6}
           <button class="btn" id="next" type="button" aria-label="পরের শিক্ষার্থী">›</button>
         </div>
         <div class="stage" id="stage">
-          <div class="sheetwrap" id="sheetWrap"><canvas id="sheetCv" width="1588" height="2244"></canvas></div>
+          <div class="sheetwrap" id="sheetWrap"><div id="sheet"></div></div>
         </div>
         <div class="btns" style="margin-top:14px">
           <button class="btn pri" id="pdfOne" type="button">এই সনদ PDF</button>
@@ -225,6 +298,7 @@ textarea.in{min-height:84px;resize:vertical;line-height:1.6}
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="off"></div>
 <div id="printRoot"></div>
 
 <script>
@@ -240,7 +314,7 @@ function ld(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}c
 let S=Object.assign({},DEFAULTS,ld(KEY_S)||{});
 let students=ld(KEY_L);
 if(!Array.isArray(students)) students=[{name:'ইসরাত সামিহা শোভা',cls:'',roll:'',marks:'',pos:'1',grade:'',photo:''}];
-let cur=0, tab='a';
+let cur=0, tab='a', UID=0;
 let saveT;
 function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY_S,JSON.stringify(S));localStorage.setItem(KEY_L,JSON.stringify(students))}catch(e){}},350)}
 
@@ -255,252 +329,86 @@ function ordinal(v){
 }
 function toast(msg,ms){const t=$('#toast');t.textContent=msg;t.style.display='block';clearTimeout(toast.t);if(ms!==0)toast.t=setTimeout(()=>{t.style.display='none'},ms||3500)}
 
-/* ---------- certificate drawing (canvas: same result on screen, print and PDF) ---------- */
-const W=794,H=1122;
-const SERIF='"Tiro Bangla","Hind Siliguri","Noto Sans Bengali","Nirmala UI",serif';
-const SANS='"Hind Siliguri","Noto Sans Bengali","Nirmala UI",sans-serif';
-const F=(w,s,fam)=>`${w} ${s}px ${fam}`;
-const imgs=new Map();
-function getImg(src){
-  if(!src) return null;
-  let e=imgs.get(src);
-  if(!e){
-    const im=new Image(); e={im,ok:false,p:null};
-    e.p=new Promise(res=>{im.onload=()=>{e.ok=true;res();refresh()};im.onerror=()=>res()});
-    im.src=src; imgs.set(src,e);
-  }
-  return e.ok?e.im:null;
-}
+/* ---------- certificate building ---------- */
 function fields(st){
   return {
-    name:(st.name||'').trim(),
+    name:(st.name||'').trim()||'শিক্ষার্থীর নাম',
     cls:bn((st.cls||'').trim()), roll:bn((st.roll||'').trim()), marks:bn((st.marks||'').trim()),
     pos:bn(ordinal(st.pos)), grade:(st.grade||'').trim()
   };
 }
 function bodyText(f){
-  const inst=(S.inst||'').trim(), ev=bn(S.event||'').trim();
-  if((S.custom||'').trim()){
+  const inst=S.inst, ev=bn(S.event);
+  if(S.custom.trim()){
     const map={name:f.name,class:f.cls,roll:f.roll,marks:f.marks,position:f.pos,grade:f.grade,event:ev,institution:inst};
-    return S.custom.replace(/\{(\w+)\}/g,(m,k)=>k in map?map[k]:m).replace(/[ \t]{2,}/g,' ').trim();
+    return S.custom.replace(/\{(\w+)\}/g,(m,k)=>k in map?map[k]:m);
   }
-  let head=''; if(inst&&ev) head=`${inst} আয়োজিত “${ev}”-এ`; else if(ev) head=`“${ev}”-এ`; else if(inst) head=`${inst}-এ`;
-  const h=head?head+' ':'';
-  if(f.pos&&f.marks) return `${h}${f.marks} নম্বর পেয়ে মেধা তালিকায় ${f.pos} স্থান অর্জন করার স্বীকৃতিস্বরূপ।`;
-  if(f.pos) return `${h}মেধা তালিকায় ${f.pos} স্থান অর্জন করার স্বীকৃতিস্বরূপ।`;
-  if(f.marks) return `${h}${f.marks} নম্বর অর্জন করার স্বীকৃতিস্বরূপ।`;
-  return head?`${head} সফলভাবে অংশগ্রহণ করার স্বীকৃতিস্বরূপ।`:'';
+  const head=ev?`${inst} আয়োজিত “${ev}”-এ`:`${inst}-এ`;
+  if(f.pos&&f.marks) return `${head} ${f.marks} নম্বর পেয়ে মেধা তালিকায় ${f.pos} স্থান অর্জন করার স্বীকৃতিস্বরূপ।`;
+  if(f.pos) return `${head} মেধা তালিকায় ${f.pos} স্থান অর্জন করার স্বীকৃতিস্বরূপ।`;
+  if(f.marks) return `${head} ${f.marks} নম্বর অর্জন করার স্বীকৃতিস্বরূপ।`;
+  return `${head} সফলভাবে অংশগ্রহণ করার স্বীকৃতিস্বরূপ।`;
 }
-
-const nameSize=(n,base)=>{const l=Array.from(n).length;return l<=18?base:l<=26?Math.round(base*.84):l<=36?Math.round(base*.66):Math.round(base*.52)};
-
-/* drawing helpers */
-function poly(c,pts,fill){c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.fillStyle=fill;c.fill()}
-function disc(c,x,y,r,fill){c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=fill;c.fill()}
-function fitBox(im,w,h,cover){const k=(cover?Math.max:Math.min)(w/im.width,h/im.height);return [im.width*k,im.height*k]}
-function drawContain(c,im,x,y,w,h,bottom){if(!im)return;const [dw,dh]=fitBox(im,w,h,false);c.drawImage(im,x+(w-dw)/2,bottom?y+h-dh:y+(h-dh)/2,dw,dh)}
-function drawCover(c,im,x,y,w,h){if(!im)return;const [dw,dh]=fitBox(im,w,h,true);c.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh)}
-function wrapText(c,str,maxW){
-  const out=[];
-  String(str).split('\n').forEach(para=>{
-    let line=''; para.split(/\s+/).filter(Boolean).forEach(w=>{
-      const t=line?line+' '+w:w;
-      if(line&&c.measureText(t).width>maxW){out.push(line);line=w}else line=t;
-    });
-    if(line) out.push(line);
-  });
-  return out;
+function nameSize(n,base){const l=Array.from(n).length;return l<=18?base:l<=26?Math.round(base*.84):l<=36?Math.round(base*.66):Math.round(base*.52)}
+function star(cx,cy,r1,r2,n){const p=[];for(let i=0;i<n*2;i++){const a=Math.PI*i/n,r=i%2?r2:r1;p.push((cx+r*Math.sin(a)).toFixed(1)+','+(cy-r*Math.cos(a)).toFixed(1))}return p.join(' ')}
+function rosette(c){
+  return `<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg"><polygon points="32,84 18,146 42,133 60,148 62,94" fill="${c.t1}"/><polygon points="88,84 102,146 78,133 60,148 58,94" fill="${c.t2}"/><polygon points="${star(60,54,54,49,22)}" fill="${c.ring}"/><circle cx="60" cy="54" r="44" fill="${c.ring2}"/><circle cx="60" cy="54" r="39" fill="${c.fill}"/></svg>`;
 }
-function wrapBalanced(c,str,maxW){
-  let best=wrapText(c,str,maxW); if(best.length<2) return best;
-  for(let w=maxW-12;w>maxW*.55;w-=12){const t=wrapText(c,str,w);if(t.length===best.length)best=t;else break}
-  return best;
-}
-
-/* flex-like column: fixed items keep their height, {grow:n} items share what is left */
-function layout(c,y,h,items){
-  items=items.filter(Boolean);
-  let fixed=0,gs=0; items.forEach(it=>{if(it.grow)gs+=it.grow;else fixed+=it.h});
-  const free=Math.max(0,h-fixed); let cy=y;
-  items.forEach(it=>{if(it.grow){cy+=free*it.grow/gs}else{it.draw(c,cy);cy+=it.h}});
-}
-function iText(c,str,font,size,lh,color,cx,maxW,mt,balanced){
-  str=String(str||'').trim(); if(!str) return null;
-  c.font=font; const lines=(balanced?wrapBalanced:wrapText)(c,str,maxW);
-  return {h:(mt||0)+lines.length*lh,draw(k,y){k.font=font;k.fillStyle=color;k.textAlign='center';k.textBaseline='middle';lines.forEach((l,i)=>k.fillText(l,cx,y+(mt||0)+lh*i+lh/2))}};
-}
-function iLogo(c,src,size,cx,mt){
-  return {h:size+(mt||0),draw(k,y){drawContain(k,getImg(src),cx-size/2,y+(mt||0),size,size)}};
-}
-function iName(c,name,base,color,lineColor,lw,cx,maxW,mt){
-  if(!name) return null;
-  let size=nameSize(name,base); c.font=F(700,size,SERIF);
-  while(c.measureText(name).width>maxW-52&&size>20){size-=2;c.font=F(700,size,SERIF)}
-  const lh=size*1.55, tw=Math.min(c.measureText(name).width+52,maxW), font=F(700,size,SERIF);
-  return {h:mt+lh+4+lw,draw(k,y){
-    k.font=font;k.fillStyle=color;k.textAlign='center';k.textBaseline='middle';k.fillText(name,cx,y+mt+lh/2);
-    k.fillStyle=lineColor;k.fillRect(cx-tw/2,y+mt+lh+4,tw,lw)}};
-}
-function iMeta(c,f,cx,color,mt){
-  const it=[]; if(f.cls) it.push('শ্রেণি: '+f.cls); if(f.roll) it.push('রোল: '+f.roll); if(f.pos&&f.grade) it.push('গ্রেড: '+f.grade);
-  if(!it.length) return null;
-  const font=F(500,19,SANS); c.font=font; const ws=it.map(t=>c.measureText(t).width), gap=30, tot=ws.reduce((a,b)=>a+b,0)+gap*(it.length-1);
-  return {h:mt+30.4,draw(k,y){k.font=font;k.fillStyle=color;k.textAlign='left';k.textBaseline='middle';let x=cx-tot/2;it.forEach((t,i)=>{k.fillText(t,x,y+mt+15.2);x+=ws[i]+gap})}};
-}
-function iBadge(f,col,cx,labColor){
-  const t=f.pos||f.grade||f.marks; if(!t) return null;
+function badge(f,c){
+  const t=f.pos||f.grade||f.marks; if(!t) return '';
   const lab=f.pos?'মেধাস্থান':(f.grade?'গ্রেড':'প্রাপ্ত নম্বর');
   const n=Array.from(t).length, fs=n>5?16:n>3?21:30;
-  return {h:164,draw(c,y){
-    const k=110/120,L=cx-55,P=(x,yy)=>[L+x*k,y+yy*k];
-    const pl=(pts,fill)=>poly(c,pts.map(p=>P(p[0],p[1])),fill);
-    pl([[32,84],[18,146],[42,133],[60,148],[62,94]],col.t1);
-    pl([[88,84],[102,146],[78,133],[60,148],[58,94]],col.t2);
-    const star=[],N=22; for(let i=0;i<N*2;i++){const a=Math.PI*i/N,r=i%2?49:54;star.push([60+r*Math.sin(a),54-r*Math.cos(a)])}
-    pl(star,col.ring);
-    const cc=P(60,54); disc(c,cc[0],cc[1],44*k,col.ring2); disc(c,cc[0],cc[1],39*k,col.fill);
-    c.font=F(700,fs,SERIF);c.fillStyle=col.tx;c.textAlign='center';c.textBaseline='middle';c.fillText(t,cc[0],cc[1]+1);
-    c.font=F(600,15,SANS);c.fillStyle=labColor;c.fillText(lab,cx,y+137.5+2+12);
-  }};
+  return `<div class="badgeW"><div class="badge">${rosette(c)}<div class="bt" style="color:${c.tx};font-size:${fs}px">${esc(t)}</div></div><div class="blab">${lab}</div></div>`;
 }
-/* signature line(s): a blank part is simply left out */
-function iSigs(xL,xR,cx,color,mt){
-  const showL=!!((S.sigLeft||'').trim()||S.sigImg), showR=!!(S.date||'').trim();
-  if(!showL&&!showR) return null;
-  const both=showL&&showR;
-  const grp=(c,gx,y,label,dateText,src)=>{
-    const ly=y+54;
-    if(src) drawContain(c,getImg(src),gx+15,ly-50,170,50,true);
-    c.textAlign='center';c.textBaseline='middle';c.fillStyle=color;
-    if(dateText){c.font=F(600,17,SANS);c.fillText(dateText,gx+100,ly-14)}
-    c.fillRect(gx,ly,200,1.6);
-    if(label){c.font=F(400,16,SANS);c.fillText(label,gx+100,ly+1.6+4+12)}
-  };
-  return {h:mt+83.6,draw(c,y){
-    y+=mt;
-    if(both){grp(c,xL,y,(S.sigLeft||'').trim(),'',S.sigImg);grp(c,xR,y,(S.sigRight||'').trim(),bn(S.date).trim(),'')}
-    else if(showL) grp(c,cx-100,y,(S.sigLeft||'').trim(),'',S.sigImg);
-    else grp(c,cx-100,y,(S.sigRight||'').trim(),bn(S.date).trim(),'');
-  }};
+function meta(f){
+  const it=[]; if(f.cls) it.push('শ্রেণি: '+f.cls); if(f.roll) it.push('রোল: '+f.roll); if(f.pos&&f.grade) it.push('গ্রেড: '+f.grade);
+  return it.length?`<div class="c-meta">${it.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:'';
 }
+function sigs(){
+  const showL=!!(S.sigLeft.trim()||S.sigImg), showR=!!S.date.trim();
+  if(!showL&&!showR) return '';
+  const left=`<div class="sg"><div class="sgtop">${S.sigImg?`<div class="sgimg" style="background-image:url('${S.sigImg}')"></div>`:''}</div><div class="sgline"></div><div class="sglab">${esc(S.sigLeft)}</div></div>`;
+  const right=`<div class="sg"><div class="sgtop"><span>${esc(bn(S.date))}</span></div><div class="sgline"></div><div class="sglab">${esc(S.sigRight)}</div></div>`;
+  const cls=(showL&&showR)?'c-sigs':'c-sigs one';
+  return `<div class="${cls}">${showL?left:''}${showR?right:''}</div>`;
+}
+function certHTML(st,tpl){
+  tpl=tpl||S.template; const u='k'+(++UID), f=fields(st), logo=S.logo||DEF_LOGO;
+  const L=`background-image:url('${logo}')`;
+  const nm=(base)=>`<div class="c-name" style="font-size:${nameSize(f.name,base)}px">${esc(f.name)}</div>`;
+  const body=`<div class="c-body">${esc(bodyText(f))}</div>`;
+  const inst=`<div class="c-inst">${esc(S.inst)}</div><div class="c-tag">${esc(bn(S.tag))}</div>`;
 
-function drawCert(cv,st,tpl,scale){
-  cv.width=Math.round(W*scale); cv.height=Math.round(H*scale);
-  const c=cv.getContext('2d'); c.setTransform(scale,0,0,scale,0,0);
-  c.fillStyle='#fff'; c.fillRect(0,0,W,H);
-  try{c.textRendering='geometricPrecision'}catch(e){}
-  const f=fields(st);
-  if(tpl==='modern') drawModern(c,f,st); else if(tpl==='simple') drawSimple(c,f); else drawRoyal(c,f);
-}
-
-function drawRoyal(c,f){
-  const cx=397,x0=126,mw=542,ink='#1a1e45',FRAME='#2A44A8';
-  c.fillStyle=FRAME; c.fillRect(14,14,766,1094);
-  c.save(); c.beginPath(); c.rect(22,22,750,1078); c.clip();
-  c.globalAlpha=.95; c.strokeStyle='#EFCE7E'; c.fillStyle='#EFCE7E'; c.lineWidth=1.5;
-  for(let x=22;x<772;x+=20) for(let y=22;y<1100;y+=20){
-    if(x>=62&&x+20<=732&&y>=62&&y+20<=1060) continue;
-    c.beginPath();c.moveTo(x+10,y+1);c.lineTo(x+19,y+10);c.lineTo(x+10,y+19);c.lineTo(x+1,y+10);c.closePath();c.stroke();
-    c.beginPath();c.arc(x+10,y+10,1.9,0,7);c.fill();
+  if(tpl==='modern'){
+    const c={t1:'#1E88E5',t2:'#0E2A6A',ring:'#D9A92C',ring2:'#F4DC8E',fill:'#0E2A6A',tx:'#FFFFFF'};
+    const ph=st.photo?`<div class="photo" style="background-image:url('${st.photo}')"></div>`:'';
+    return `<div class="cert t-modern${st.photo?' hasph':''}">
+<svg class="bg" viewBox="0 0 794 1122" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${u}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E1F0FC"/></linearGradient></defs>
+<rect width="794" height="1122" fill="url(#${u}g)"/>
+<polygon points="0,0 794,0 794,100 0,222" fill="#0E2A6A"/><polygon points="0,222 794,100 794,160 0,287" fill="#1E88E5"/><polygon points="0,287 794,160 794,190 0,317" fill="#8FD3F4"/>
+<polygon points="0,1030 794,940 794,1122 0,1122" fill="#A6DDF7"/><polygon points="0,1066 794,986 794,1122 0,1122" fill="#1E88E5"/><polygon points="0,1100 794,1052 794,1122 0,1122" fill="#0E2A6A"/></svg>
+<div class="logo wm" style="${L}"></div>
+<div class="hlogo" style="${L}"></div>
+<div class="htxt">${inst}</div>${ph}
+<div class="main"><div class="c-title">${esc(S.title)}</div><div class="c-intro">${esc(S.intro)}</div>${nm(44)}${meta(f)}${body}<div class="grow"></div>${badge(f,c)}${sigs()}</div></div>`;
   }
-  c.restore();
-  c.fillStyle=FRAME; c.fillRect(62,62,670,998);
-  c.fillStyle='#FFFDF5'; c.fillRect(68,68,658,986);
-  c.strokeStyle='#C9A24A'; c.lineWidth=3; c.strokeRect(68,68,658,986);
-  c.lineWidth=1; c.strokeRect(80,80,634,962);
 
-  const title=(S.title||'').trim();
-  const orn=title?{h:20,draw(k,y){
-    k.fillStyle='#C9A24A';k.fillRect(cx-125,y+4,110,2);k.fillRect(cx+15,y+4,110,2);
-    k.beginPath();k.moveTo(cx,y-2);k.lineTo(cx+7,y+5);k.lineTo(cx,y+12);k.lineTo(cx-7,y+5);k.closePath();k.fill()}}:null;
-  layout(c,106,906,[
-    iText(c,title,F(700,52,SERIF),52,72.8,'#B5851A',cx,mw,0),
-    orn,
-    iLogo(c,S.logo||DEF_LOGO,116,cx,0),
-    iText(c,S.inst,F(700,32,SERIF),32,46.4,'#14206E',cx,mw,8),
-    iText(c,bn(S.tag),F(400,17,SANS),17,27.2,'#4a4f7a',cx,mw,0),
-    {grow:.55},
-    iText(c,S.intro,F(500,21,SANS),21,33.6,'#3a3f6a',cx,mw,18),
-    iName(c,f.name,48,'#14206E','#14206E',2,cx,mw,6),
-    iMeta(c,f,cx,ink,12),
-    iText(c,bodyText(f),F(400,22,SANS),22,40.7,ink,cx,mw,22,true),
-    {grow:1},
-    iBadge(f,{t1:'#14206E',t2:'#B98A1E',ring:'#C9962A',ring2:'#F1D683',fill:'#14206E',tx:'#F6DB86'},cx,ink),
-    iSigs(x0+126,x0+mw-200,cx,ink,16)
-  ]);
-
-  const ev=bn(S.event||'').trim();
-  if(ev){
-    const sx=110,sy=1012;
-    c.save(); c.shadowColor='rgba(0,0,0,.4)'; c.shadowBlur=12; c.shadowOffsetY=5;
-    const g=c.createRadialGradient(sx-80+.32*160,sy-80+.28*160,0,sx-80+.32*160,sy-80+.28*160,158);
-    g.addColorStop(0,'#F8E39E'); g.addColorStop(.58,'#D3A233'); g.addColorStop(1,'#A97A17');
-    disc(c,sx,sy,80,g); c.restore();
-    c.strokeStyle='#F0D27A'; c.lineWidth=4; c.beginPath(); c.arc(sx,sy,78,0,7); c.stroke();
-    c.strokeStyle='rgba(20,32,110,.55)'; c.lineWidth=2; c.setLineDash([6,4]); c.beginPath(); c.arc(sx,sy,63,0,7); c.stroke(); c.setLineDash([]);
-    c.font=F(700,17,SERIF); const lines=wrapBalanced(c,ev,96), lh=23;
-    c.fillStyle='#14206E'; c.textAlign='center'; c.textBaseline='middle';
-    lines.forEach((l,i)=>c.fillText(l,sx,sy-lh*lines.length/2+lh*i+lh/2));
+  if(tpl==='simple'){
+    const c={t1:'#14206E',t2:'#C9A24A',ring:'#C9A24A',ring2:'#EBD48F',fill:'#14206E',tx:'#FFFFFF'};
+    return `<div class="cert t-simple"><div class="f1"></div><div class="f2"></div>
+<div class="paper"><div class="logo" style="${L}"></div>${inst}<div class="c-event">${esc(bn(S.event))}</div><div class="grow" style="flex:.45"></div>
+<div class="c-title">${esc(S.title)}</div><div class="c-intro">${esc(S.intro)}</div>${nm(42)}${meta(f)}${body}<div class="grow"></div>${badge(f,c)}${sigs()}</div></div>`;
   }
-}
 
-function drawModern(c,f,st){
-  const cx=397,ink='#12235a',logo=S.logo||DEF_LOGO;
-  const g=c.createLinearGradient(0,0,0,H); g.addColorStop(0,'#FFFFFF'); g.addColorStop(1,'#E1F0FC'); c.fillStyle=g; c.fillRect(0,0,W,H);
-  poly(c,[[0,0],[794,0],[794,100],[0,222]],'#0E2A6A');
-  poly(c,[[0,222],[794,100],[794,160],[0,287]],'#1E88E5');
-  poly(c,[[0,287],[794,160],[794,190],[0,317]],'#8FD3F4');
-  poly(c,[[0,1030],[794,940],[794,1122],[0,1122]],'#A6DDF7');
-  poly(c,[[0,1066],[794,986],[794,1122],[0,1122]],'#1E88E5');
-  poly(c,[[0,1100],[794,1052],[794,1122],[0,1122]],'#0E2A6A');
-  c.save(); c.globalAlpha=.05; drawContain(c,getImg(logo),187,400,420,420); c.restore();
-
-  disc(c,96,86,52,'#fff'); drawContain(c,getImg(logo),51,41,90,90);
-  c.strokeStyle='#F2C14E'; c.lineWidth=3; c.beginPath(); c.arc(96,86,50.5,0,7); c.stroke();
-  const ph=st.photo?getImg(st.photo):null;
-  if(st.photo){
-    c.save(); c.beginPath(); c.arc(673,113,67,0,7); c.clip(); c.fillStyle='#fff'; c.fillRect(600,40,146,146); drawCover(c,ph,606,46,134,134); c.restore();
-    c.strokeStyle='#EBB94A'; c.lineWidth=6; c.beginPath(); c.arc(673,113,70,0,7); c.stroke();
-  }
-  const hw=st.photo?390:560; let hy=44;
-  [[S.inst,F(700,27,SERIF),39.15,'#fff',1],[bn(S.tag),F(400,16,SANS),25.6,'#C9DEFF',0]].forEach(a=>{
-    const s=String(a[0]||'').trim(); if(!s) return;
-    c.font=a[1]; const lines=wrapText(c,s,hw);
-    c.fillStyle=a[3]; c.textAlign='left'; c.textBaseline='middle';
-    lines.forEach((l,i)=>c.fillText(l,166,hy+a[2]*i+a[2]/2)); hy+=a[2]*lines.length;
-  });
-
-  layout(c,336,622,[
-    iText(c,S.title,F(700,46,SERIF),46,64.4,'#0E2A6A',cx,666,0),
-    iText(c,S.intro,F(500,21,SANS),21,33.6,'#33477f',cx,666,10),
-    iName(c,f.name,44,'#0E2A6A','#7DB7E8',2,cx,666,6),
-    iMeta(c,f,cx,ink,12),
-    iText(c,bodyText(f),F(400,22,SANS),22,40.7,'#1d2e63',cx,548,22,true),
-    {grow:1},
-    iBadge(f,{t1:'#1E88E5',t2:'#0E2A6A',ring:'#D9A92C',ring2:'#F4DC8E',fill:'#0E2A6A',tx:'#FFFFFF'},cx,ink),
-    iSigs(64,530,cx,ink,16)
-  ]);
-}
-
-function drawSimple(c,f){
-  const cx=397,mw=586,ink='#111';
-  c.fillStyle='#14206E'; c.fillRect(0,0,W,H); c.fillStyle='#fff'; c.fillRect(26,26,742,1070);
-  c.strokeStyle='#C9A24A'; c.lineWidth=2; c.strokeRect(45,45,704,1032);
-  layout(c,78,962,[
-    iLogo(c,S.logo||DEF_LOGO,92,cx,0),
-    iText(c,S.inst,F(700,32,SANS),32,46.4,'#111',cx,mw,6),
-    iText(c,bn(S.tag),F(400,17,SANS),17,27.2,'#555',cx,mw,0),
-    iText(c,bn(S.event),F(600,24,SANS),24,38.4,'#14206E',cx,mw,2),
-    {grow:.45},
-    iText(c,S.title,F(700,64,SERIF),64,89.6,'#111',cx,mw,18),
-    iText(c,S.intro,F(500,21,SANS),21,33.6,'#444',cx,mw,12),
-    iName(c,f.name,42,'#111','#888',1.5,cx,mw,6),
-    iMeta(c,f,cx,ink,12),
-    iText(c,bodyText(f),F(400,22,SANS),22,40.7,ink,cx,mw,22,true),
-    {grow:1},
-    iBadge(f,{t1:'#14206E',t2:'#C9A24A',ring:'#C9A24A',ring2:'#EBD48F',fill:'#14206E',tx:'#FFFFFF'},cx,ink),
-    iSigs(104,490,cx,ink,16)
-  ]);
+  const c={t1:'#14206E',t2:'#B98A1E',ring:'#C9962A',ring2:'#F1D683',fill:'#14206E',tx:'#F6DB86'};
+  return `<div class="cert t-royal">
+<svg class="bg" viewBox="0 0 794 1122" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="${u}p" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M10 1L19 10L10 19L1 10Z" fill="none" stroke="#EFCE7E" stroke-width="1.5"/><circle cx="10" cy="10" r="1.9" fill="#EFCE7E"/></pattern></defs>
+<rect width="794" height="1122" fill="#fff"/><rect x="14" y="14" width="766" height="1094" fill="#2A44A8"/>
+<rect x="22" y="22" width="750" height="1078" fill="url(#${u}p)" opacity=".95"/><rect x="62" y="62" width="670" height="998" fill="#2A44A8"/>
+<rect x="68" y="68" width="658" height="986" fill="#FFFDF5" stroke="#C9A24A" stroke-width="3"/><rect x="80" y="80" width="634" height="962" fill="none" stroke="#C9A24A" stroke-width="1"/></svg>
+<div class="paper"><div class="c-title">${esc(S.title)}</div><div class="orn"><i></i><b></b><i></i></div>
+<div class="logo" style="${L}"></div>${inst}<div class="grow" style="flex:.55"></div><div class="c-intro">${esc(S.intro)}</div>${nm(48)}${meta(f)}${body}<div class="grow"></div>${badge(f,c)}${sigs()}</div>
+<div class="seal"><div class="in">${esc(bn(S.event))}</div></div></div>`;
 }
 
 /* ---------- UI: settings ---------- */
@@ -619,21 +527,23 @@ $('#csvFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)ret
 /* ---------- preview ---------- */
 function renderPreview(){
   const st=students[cur]||blank();
-  drawCert($('#sheetCv'),st,S.template,2);
+  $('#sheet').innerHTML=certHTML(st,S.template);
   const n=students.length;
   $('#pname').textContent=n?(st.name||'নাম লেখা হয়নি'):'তালিকা ফাঁকা';
   $('#ppos').textContent=n?`${bn(cur+1)} / ${bn(n)}`:'';
   $('#prev').disabled=cur<=0; $('#next').disabled=cur>=n-1;
-  ['#pdfOne','#pdfAll','#printAll'].forEach(s=>{$(s).disabled=!n||busy});
+  ['#pdfOne','#pdfAll','#printAll'].forEach(s=>{$(s).disabled=!n});
   $('#pdfAll').textContent=n>1?`সব সনদ (${bn(n)}টি) এক PDF-এ`:'সব সনদ এক PDF-এ';
 }
 function renderThumbs(){
   const st=students[cur]||blank();
-  $$('.tpl').forEach(b=>{drawCert(b.querySelector('canvas'),st,b.dataset.t,.25);b.setAttribute('aria-pressed',String(b.dataset.t===S.template))});
+  $$('.tpl').forEach(b=>{b.querySelector('.thumb>div').innerHTML=certHTML(st,b.dataset.t);b.setAttribute('aria-pressed',String(b.dataset.t===S.template))});
 }
 function fit(){
-  const w=Math.min(794,$('#stage').clientWidth-32); if(w<=0)return;
-  $('#sheetWrap').style.width=w+'px'; $('#sheetWrap').style.height=(w*H/W)+'px';
+  const w=$('#stage').clientWidth-32; if(w<=0)return;
+  const s=Math.min(1,w/794);
+  $('#sheetWrap').style.width=(794*s)+'px'; $('#sheetWrap').style.height=(1122*s)+'px';
+  $('#sheet').style.transform=`scale(${s})`;
 }
 let raf;
 function refresh(){
@@ -658,86 +568,59 @@ $$('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 
 /* ---------- PDF / print ---------- */
 const safe=s=>(String(s||'').trim().replace(/[\\/:*?"<>|\s]+/g,'-').slice(0,40))||'student';
-async function ensureFonts(){
+async function loadFonts(){
   try{
-    const sample='অআকখগ ১২৩ ABC';
-    await Promise.all(['400 20px "Hind Siliguri"','500 20px "Hind Siliguri"','600 20px "Hind Siliguri"','700 20px "Hind Siliguri"','400 64px "Tiro Bangla"','700 64px "Tiro Bangla"'].map(f=>document.fonts.load(f,sample)));
-    await document.fonts.ready;
+    const jobs=['400 40px "Tiro Bangla"','700 40px "Tiro Bangla"','500 20px "Hind Siliguri"','600 20px "Hind Siliguri"','400 20px "Hind Siliguri"','700 20px "Hind Siliguri"'].map(f=>document.fonts.load(f,'অআকখগ ১২৩ AB'));
+    await Promise.all(jobs); await document.fonts.ready;
   }catch(e){}
-}
-async function preloadFor(st){
-  for(const s of [S.logo||DEF_LOGO,S.sigImg,st.photo].filter(Boolean)){getImg(s);const e=imgs.get(s);if(e)await e.p}
-}
-const toJpeg=(cv,q)=>new Promise(r=>cv.toBlob(r,'image/jpeg',q));
-function buildPDF(pages){
-  const enc=new TextEncoder(),parts=[],offs=[];let pos=0;
-  const put=x=>{const b=typeof x==='string'?enc.encode(x):x;parts.push(b);pos+=b.length};
-  const n=pages.length;
-  put('%PDF-1.4\n');
-  offs[1]=pos;put('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
-  offs[2]=pos;put(`2 0 obj\n<< /Type /Pages /Kids [${pages.map((_,i)=>`${3+i*3} 0 R`).join(' ')}] /Count ${n} >>\nendobj\n`);
-  pages.forEach((p,i)=>{
-    const a=3+i*3,b=a+1,d=a+2,content='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q';
-    offs[a]=pos;put(`${a} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 ${d} 0 R >> >> /Contents ${b} 0 R >>\nendobj\n`);
-    offs[b]=pos;put(`${b} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
-    offs[d]=pos;put(`${d} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${p.w} /Height ${p.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.data.length} >>\nstream\n`);put(p.data);put('\nendstream\nendobj\n');
-  });
-  const total=3+n*3,xref=pos;
-  let x=`xref\n0 ${total}\n0000000000 65535 f \n`;
-  for(let i=1;i<total;i++) x+=String(offs[i]).padStart(10,'0')+' 00000 n \n';
-  put(x+`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
-  return new Blob(parts,{type:'application/pdf'});
 }
 let busy=false;
 function setBusy(b){busy=b;['#pdfOne','#pdfAll','#printAll'].forEach(s=>{$(s).disabled=b||!students.length})}
 async function makePDF(list,name){
   if(busy||!list.length)return;
+  if(typeof html2canvas==='undefined'||!window.jspdf){toast('PDF তৈরির অংশ লোড হয়নি। ইন্টারনেট দেখে পেজটি আবার খুলুন।',6000);return}
   let dl=null; try{dl=window.claude?await window.claude.use('downloads'):null}catch(e){}
   setBusy(true);
   try{
-    toast('তৈরি হচ্ছে…',0); await ensureFonts();
-    const cv=document.createElement('canvas'),pages=[];
+    toast('তৈরি হচ্ছে…',0); await loadFonts();
+    const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
+    const host=$('#off');
     for(let i=0;i<list.length;i++){
-      await preloadFor(list[i]); drawCert(cv,list[i],S.template,2.5);
-      const blob=await toJpeg(cv,.92);
-      pages.push({data:new Uint8Array(await blob.arrayBuffer()),w:cv.width,h:cv.height});
+      host.innerHTML=certHTML(list[i],S.template);
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      const canvas=await html2canvas(host.firstElementChild,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,windowWidth:794,windowHeight:1122,scrollX:0,scrollY:0,
+        onclone:d=>{const h=d.getElementById('off');if(h){h.style.left='0px';h.style.top='0px'}}});
+      if(i>0) pdf.addPage('a4','portrait');
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',0,0,210,297,undefined,'FAST');
       toast(`তৈরি হচ্ছে… ${bn(i+1)} / ${bn(list.length)}`,0);
-      await new Promise(r=>setTimeout(r,0));
     }
-    const pdf=buildPDF(pages);
+    host.innerHTML='';
+    const blob=pdf.output('blob');
     if(!dl){
-      const a=document.createElement('a'); a.href=URL.createObjectURL(pdf); a.download=name+'.pdf';
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name+'.pdf';
       document.body.appendChild(a); a.click();
-      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);
+      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000);
       toast('PDF ডাউনলোড শুরু হয়েছে'); return;
     }
-    try{await dl.save({filename:name+'.pdf',data:pdf});toast('PDF সেভ হয়েছে')}
+    try{await dl.save({filename:name+'.pdf',data:blob});toast('PDF সেভ হয়েছে')}
     catch(e){toast(e&&e.code==='declined'?'ডাউনলোড বাতিল করা হয়েছে':'ডাউনলোড করা যায়নি, আবার চেষ্টা করুন',4500)}
   }catch(e){
     console.error(e); toast('PDF তৈরি করা যায়নি। আবার চেষ্টা করুন।',5000);
-  }finally{ setBusy(false); }
+  }finally{ $('#off').innerHTML=''; setBusy(false); }
 }
 $('#pdfOne').onclick=()=>makePDF([students[cur]],'certificate-'+safe(students[cur]&&students[cur].name));
 $('#pdfAll').onclick=()=>makePDF(students,'certificates-all');
 $('#printAll').onclick=async()=>{
-  if(!students.length||busy)return;
-  setBusy(true);
-  try{
-    await ensureFonts();
-    const cv=document.createElement('canvas'),html=[];
-    for(const s of students){await preloadFor(s);drawCert(cv,s,S.template,2);html.push(`<img class="pg" alt="" src="${cv.toDataURL('image/jpeg',.92)}">`)}
-    const root=$('#printRoot'); root.innerHTML=html.join('');
-    await Promise.all(Array.from(root.querySelectorAll('img')).map(i=>i.decode?i.decode().catch(()=>{}):0));
-    const done=()=>{root.innerHTML='';window.removeEventListener('afterprint',done)};
-    window.addEventListener('afterprint',done);
-    try{window.print()}catch(e){toast('এখানে প্রিন্ট চালু নেই। PDF নামিয়ে প্রিন্ট করুন।',5000);done()}
-  }finally{setBusy(false)}
+  if(!students.length)return;
+  await loadFonts();
+  $('#printRoot').innerHTML=students.map(s=>certHTML(s,S.template)).join('');
+  const done=()=>{$('#printRoot').innerHTML='';window.removeEventListener('afterprint',done)};
+  window.addEventListener('afterprint',done);
+  try{window.print()}catch(e){toast('এখানে প্রিন্ট চালু নেই। PDF নামিয়ে প্রিন্ট করুন।',5000);done()}
 };
 
 /* ---------- start ---------- */
 syncSettingsInputs(); renderStudents(); renderHeader(); refresh(); setTab('a');
-ensureFonts().then(refresh);
-if(document.fonts&&document.fonts.addEventListener) document.fonts.addEventListener('loadingdone',refresh);
 })();
 </script>
 </body>
