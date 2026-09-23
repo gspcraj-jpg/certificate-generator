@@ -195,6 +195,27 @@ textarea.in{min-height:84px;resize:vertical;line-height:1.6}
       <!-- ১: সেটিংস -->
       <section class="panel pa">
         <div class="card">
+          <h2>ব্যাকআপ (অন্য ডিভাইসে নিতে)</h2>
+          <p class="sub">লিংক এক হলেও পিসি আর মোবাইল আলাদা যন্ত্র — এই লেখা নিজে থেকে একটা থেকে আরেকটায় যায় না। নিচের যেকোনো একটা উপায়ে তথ্য এক ডিভাইস থেকে আরেক ডিভাইসে নিন।</p>
+          <div class="btns">
+            <button class="btn pri" id="backupSave" type="button">ব্যাকআপ ডাউনলোড</button>
+            <button class="btn" id="backupLoad" type="button">ব্যাকআপ থেকে আনুন</button>
+            <button class="btn" id="codeToggle" type="button">কোড দিয়ে (কপি-পেস্ট)</button>
+            <input type="file" id="backupFile" accept=".json,application/json" hidden>
+          </div>
+          <div id="codeBox" hidden style="margin-top:12px">
+            <label class="f"><span>এই কোডটা কপি করে অন্য ডিভাইসে পেস্ট করুন, অথবা অন্য ডিভাইস থেকে পাওয়া কোড এখানে পেস্ট করে "কোড থেকে আনুন" চাপুন</span>
+              <textarea class="in" id="codeArea" style="min-height:110px;font-size:12.5px"></textarea>
+            </label>
+            <div class="btns">
+              <button class="btn pri" id="codeCopy" type="button">কপি করুন</button>
+              <button class="btn" id="codePaste" type="button">পেস্ট বসান</button>
+              <button class="btn" id="codeApply" type="button">কোড থেকে আনুন</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
           <h2>ডিজাইন বেছে নিন</h2>
           <p class="sub">নিচের ছোট ছবিতে বর্তমান শিক্ষার্থীর সনদ দেখা যাচ্ছে।</p>
           <div class="tpls" id="tpls">
@@ -455,6 +476,56 @@ $('#sigClear').onclick=()=>{S.sigImg='';refresh()};
 $('#dateToday').onclick=()=>{
   let d; try{d=new Date().toLocaleDateString('bn-BD',{day:'numeric',month:'long',year:'numeric'})}catch(x){d=new Date().toLocaleDateString()}
   S.date=d; syncSettingsInputs(); refresh();
+};
+
+/* ---------- backup: export / import so data can move between devices ---------- */
+function backupPayload(){ return JSON.stringify({app:'gspc-cert',v:1,settings:S,students}); }
+function applyBackup(text){
+  const j=JSON.parse(text);
+  if(!j||typeof j!=='object'||!j.settings||!Array.isArray(j.students)) throw new Error('bad');
+  S=Object.assign({},DEFAULTS,j.settings);
+  students=j.students.length?j.students:[blank()];
+  cur=0; syncSettingsInputs(); renderStudents(); refresh();
+}
+$('#backupSave').onclick=async()=>{
+  const blob=new Blob([backupPayload()],{type:'application/json'});
+  const fname='certificate-generator-backup.json';
+  let dl=null; try{dl=window.claude?await window.claude.use('downloads'):null}catch(e){}
+  if(dl){
+    try{await dl.save({filename:fname,data:blob});toast('ব্যাকআপ সেভ হয়েছে');return}catch(e){/* fall through to plain download */}
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000);
+  toast('ব্যাকআপ ডাউনলোড শুরু হয়েছে');
+};
+$('#backupLoad').onclick=()=>$('#backupFile').click();
+$('#backupFile').onchange=e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{ applyBackup(String(fr.result)); toast('ব্যাকআপ থেকে তথ্য আনা হয়েছে'); }
+    catch(x){ toast('এই ফাইলটি পড়া যায়নি — সঠিক ব্যাকআপ ফাইল বেছে নিন',4500); }
+  };
+  fr.readAsText(f,'utf-8');
+};
+
+$('#codeToggle').onclick=()=>{const b=$('#codeBox');const opening=b.hidden;b.hidden=!b.hidden;if(opening){$('#codeArea').value=backupPayload()}};
+$('#codeCopy').onclick=async()=>{
+  const txt=backupPayload(); $('#codeArea').value=txt;
+  try{await navigator.clipboard.writeText(txt); toast('কপি হয়েছে — এবার অন্য ডিভাইসে গিয়ে পেস্ট করুন')}
+  catch(e){$('#codeArea').select(); toast('কপি স্বয়ংক্রিয় হয়নি — লেখাটা সিলেক্ট হয়ে আছে, নিজে কপি করুন (Ctrl/Cmd+C)',5000)}
+};
+$('#codePaste').onclick=async()=>{
+  try{
+    const txt=await navigator.clipboard.readText();
+    if(txt&&txt.trim()) $('#codeArea').value=txt.trim();
+    else toast('ক্লিপবোর্ডে কিছু পাওয়া যায়নি — বাক্সে নিজে পেস্ট করুন',4000);
+  }catch(e){ toast('স্বয়ংক্রিয় পেস্ট করা গেল না — বাক্সে নিজে পেস্ট করুন (Ctrl/Cmd+V)',4500); }
+};
+$('#codeApply').onclick=()=>{
+  try{ applyBackup($('#codeArea').value.trim()); toast('কোড থেকে তথ্য আনা হয়েছে'); }
+  catch(x){ toast('এই কোডটি ঠিক নেই — পুরো কোডটি ঠিকভাবে পেস্ট করুন',4500); }
 };
 
 /* ---------- UI: students ---------- */
